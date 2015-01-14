@@ -38,6 +38,8 @@ class OfxParserTest < MiniTest::Unit::TestCase
   end
 
   def test_parse_datetime
+    puts @parser.parse_datetime('20070622190000.200[-5]')
+    assert_kind_of DateTime, @parser.parse_datetime('20070622190000.200[-5]')
     assert_kind_of DateTime, @parser.parse_datetime('20070622190000.200[-5:CDT]')
     assert_kind_of DateTime, @parser.parse_datetime('20070622190000.200[+9.0:JST]')
     assert_kind_of DateTime, @parser.parse_datetime('20070622')
