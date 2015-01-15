@@ -415,6 +415,16 @@ class OfxParserTest < MiniTest::Unit::TestCase
     end
   end
 
+  def test_optional_statement_fields_missing
+    # No AVAILBAL specified
+    ofx = OfxParser::OfxParser.parse(OFX_FILES[:stmt_required_only])
+    acct = ofx.credit_card
+    assert_nil acct.remaining_credit
+    assert_nil acct.remaining_credit_date
+    assert_equal '-1111.01', acct.balance
+    assert_kind_of DateTime, acct.balance_date
+  end
+
   def test_account_listing
     ofx = OfxParser::OfxParser.parse(OFX_FILES[:list])
 

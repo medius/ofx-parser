@@ -140,8 +140,10 @@ module OfxParser
       acct.transaction_uid = (doc/"TRNUID").inner_text.strip
       acct.balance = (doc/"CCSTMTRS/LEDGERBAL/BALAMT").inner_text
       acct.balance_date = parse_datetime((doc/"CCSTMTRS/LEDGERBAL/DTASOF").inner_text)
-      acct.remaining_credit = (doc/"CCSTMTRS/AVAILBAL/BALAMT").inner_text
-      acct.remaining_credit_date = parse_datetime((doc/"CCSTMTRS/AVAILBAL/DTASOF").inner_text)
+      unless (doc/"CCSTMTRS/AVAILBAL").inner_text.empty?
+        acct.remaining_credit = (doc/"CCSTMTRS/AVAILBAL/BALAMT").inner_text
+        acct.remaining_credit_date = parse_datetime((doc/"CCSTMTRS/AVAILBAL/DTASOF").inner_text)
+      end
 
       statement = Statement.new
       statement.currency = (doc/"CCSTMTRS/CURDEF").inner_text
