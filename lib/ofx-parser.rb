@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'hpricot'
+require 'nokogiri'
 require 'time'
 require 'date'
 
@@ -41,7 +41,8 @@ module OfxParser
       body.gsub!(/\s+</m, '<')
       body.gsub!(/>\s+/m, '>')
       body.gsub!(/<([^>]+?)>([^<]+)/m, '<\1>\2</\1>')
-
+      body.gsub!(%r{</([^>]+)></\1>}, '</\1>')
+      body = "<OFX>#{body}"
       [header, body]
     end
 
@@ -58,7 +59,7 @@ module OfxParser
 
   private
     def self.parse_body(body)
-      doc = Hpricot.XML(body)
+      doc = Nokogiri::XML(body)
 
       ofx = Ofx.new
 
