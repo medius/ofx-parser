@@ -33,9 +33,21 @@ module OfxParser
     def self.pre_process(ofx)
       header, body = ofx.split(/\n{2,}|:?<OFX>/, 2)
 
-      header = Hash[*header.gsub(/^\r?\n+/,'').split(/\r\n/).collect do |e|
+        headers = {}
+        header.split(/\s+/).each do |attr_text|
+          match = /(.+)="(.+)"/.match(attr_text)
+          next unless match
+          k, v = match[1], match[2]
+          headers[k] = v
+        end
+      if (headers["VERSION"] == "202") || (headers["VERSION"] == "211")
+        header = headers
+      else
+        header = Hash[*header.gsub(/^\r?\n+/,'').split(/\r\n/).collect do |e|
         e.split(/:/,2)
       end.flatten]
+
+      end
 
       body.gsub!(/>\s+</m, '><')
       body.gsub!(/\s+</m, '<')

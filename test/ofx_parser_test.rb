@@ -448,6 +448,16 @@ class OfxParserTest < MiniTest::Unit::TestCase
     assert_includes doc.header, "VERSION", "header should still be parsed"
   end
 
+  def test_ofx_202_header_version
+    doc = OfxParser::OfxParser.parse(OFX_FILES[:ofx_202])
+    assert_equal "202",doc.header["VERSION"]
+  end
+
+  def test_ofx_211_header_version
+    doc = OfxParser::OfxParser.parse(OFX_FILES[:ofx_211])
+    assert_equal "211",doc.header["VERSION"]
+  end
+
   class X
     include OfxParser::MonetarySupport
     extend OfxParser::MonetaryClassSupport
