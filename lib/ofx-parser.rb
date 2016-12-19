@@ -1,5 +1,5 @@
 require 'rubygems'
-require 'nokogiri'
+require 'hpricot'
 require 'time'
 require 'date'
 
@@ -33,28 +33,15 @@ module OfxParser
     def self.pre_process(ofx)
       header, body = ofx.split(/\n{2,}|:?<OFX>/, 2)
 
-        headers = {}
-        header.split(/\s+/).each do |attr_text|
-          match = /(.+)="(.+)"/.match(attr_text)
-          next unless match
-          k, v = match[1], match[2]
-          headers[k] = v
-        end
-      if (headers["VERSION"] == "202") || (headers["VERSION"] == "211")
-        header = headers
-      else
-        header = Hash[*header.gsub(/^\r?\n+/,'').split(/\r\n/).collect do |e|
+      header = Hash[*header.gsub(/^\r?\n+/,'').split(/\r\n/).collect do |e|
         e.split(/:/,2)
       end.flatten]
-
-      end
 
       body.gsub!(/>\s+</m, '><')
       body.gsub!(/\s+</m, '<')
       body.gsub!(/>\s+/m, '>')
       body.gsub!(/<([^>]+?)>([^<]+)/m, '<\1>\2</\1>')
-      body.gsub!(%r{</([^>]+)></\1>}, '</\1>')
-      body = "<OFX>#{body}"
+
       [header, body]
     end
 
@@ -66,12 +53,29 @@ module OfxParser
     #
     # Returns a DateTime object. Milliseconds (XXX) are ignored.
     def self.parse_datetime(date)
-      DateTime.parse date
+      if /\A\s*
+          (\d{4})(\d{2})(\d{2})           # YYYYMMDD            1,2,3
+          (?:(\d{2})(\d{2})(\d{2}))?      # HHMMSS  - optional  4,5,6
+          (?:\.(\d{3}))?                  # .XXX    - optional  7
+          (?:\[([-+]?[\.\d]+)\:\w{3}\])?  # [-n:TZ] - optional  8,9
+          \s*\z/ix =~ date
+        year = $1.to_i
+        mon = $2.to_i
+        day = $3.to_i
+        hour = $4.to_i
+        min = $5.to_i
+        sec = $6.to_i
+        # DateTime does not support usecs.
+        # usec = 0
+        # usec = $7.to_f * 1000000 if $7
+        off = Rational($8.to_i, 24) # offset as a fraction of day. :|
+        DateTime.civil(year, mon, day, hour, min, sec, off)
+      end
     end
 
   private
     def self.parse_body(body)
-      doc = Nokogiri::XML(body)
+      doc = Hpricot.XML(body)
 
       ofx = Ofx.new
 
@@ -153,10 +157,8 @@ module OfxParser
       acct.transaction_uid = (doc/"TRNUID").inner_text.strip
       acct.balance = (doc/"CCSTMTRS/LEDGERBAL/BALAMT").inner_text
       acct.balance_date = parse_datetime((doc/"CCSTMTRS/LEDGERBAL/DTASOF").inner_text)
-      unless (doc/"CCSTMTRS/AVAILBAL").inner_text.empty?
-        acct.remaining_credit = (doc/"CCSTMTRS/AVAILBAL/BALAMT").inner_text
-        acct.remaining_credit_date = parse_datetime((doc/"CCSTMTRS/AVAILBAL/DTASOF").inner_text)
-      end
+      acct.remaining_credit = (doc/"CCSTMTRS/AVAILBAL/BALAMT").inner_text
+      acct.remaining_credit_date = parse_datetime((doc/"CCSTMTRS/AVAILBAL/DTASOF").inner_text)
 
       statement = Statement.new
       statement.currency = (doc/"CCSTMTRS/CURDEF").inner_text
